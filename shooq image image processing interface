@@ -1,0 +1,137 @@
+import cv2
+import tkinter as tk
+from tkinter import filedialog, Scale
+from PIL import Image, ImageTk
+import numpy as np
+
+my_w = tk.Tk()
+my_w.geometry("1280x500")  # Size of the window
+my_w.title('Image Processing by shooq bamashmoos')
+my_w.configure(background='#f3dfe8') # Set background color
+
+# Specify the font and button size
+my_font1 = ('Arial', 24, 'bold')
+my_font2 = ('Arial', 12, 'italic')
+button_width = 15
+button_height = 1
+
+l1 = tk.Label(my_w, text='Image Processing', width=40, font=my_font1, fg='#ff69b4', bg='#f3dfe8')
+l1.grid(row=0, column=0, columnspan=2, pady=10)
+
+button_color = '#ffc0cb'
+# Create the buttons with fixed size
+b1 = tk.Button(my_w, text='Upload File', width=button_width, height=button_height, bg=button_color, font=my_font2, command=lambda: upload_file())
+b1.grid(row=1, column=0, padx=5, pady=5)
+
+b2 = tk.Button(my_w, text='Resize', width=button_width, height=button_height, bg=button_color, font=my_font2, command=lambda: process_image("resize", scale_slider.get()))
+b2.grid(row=2, column=0, padx=5, pady=5)
+
+b3 = tk.Button(my_w, text='Grayscale', width=button_width, height=button_height, bg=button_color, font=my_font2, command=lambda: process_image("grayscale"))
+b3.grid(row=3, column=0, padx=5, pady=5)
+
+b4 = tk.Button(my_w, text='Blur', width=button_width, height=button_height, bg=button_color, font=my_font2, command=lambda: process_image("blur", blur_slider.get()))
+b4.grid(row=4, column=0, padx=5, pady=5)
+
+b5 = tk.Button(my_w, text='Scale', width=button_width, height=button_height, bg=button_color, font=my_font2, command=lambda: process_image("scale", scale_slider.get()))
+b5.grid(row=5, column=0, padx=5, pady=5)
+
+b6 = tk.Button(my_w, text='Rotate', width=button_width, height=button_height, bg=button_color, font=my_font2, command=lambda: process_image("rotate", rotate_slider.get()))
+b6.grid(row=6, column=0, padx=5, pady=5)
+
+b7 = tk.Button(my_w, text='Flip', width=button_width, height=button_height, bg=button_color, font=my_font2, command=lambda: process_image("flip"))
+b7.grid(row=7, column=0, padx=5, pady=5)
+
+b8 = tk.Button(my_w, text='Save Image', width=button_width, height=button_height, bg=button_color, font=my_font2, command=lambda: save_image())
+b8.grid(row=8, column=0, padx=5, pady=5)
+
+# Create sliders to control parameters
+scale_slider = Scale(my_w, from_=10, to=200, length=400, orient='horizontal', label='Scale/Resize (%)')
+scale_slider.set(100)
+scale_slider.grid(row=2, column=1, padx=5, pady=5)
+
+blur_slider = Scale(my_w, from_=1, to=50, length=400, orient='horizontal', label='Blur')
+blur_slider.set(1)
+blur_slider.grid(row=4, column=1, padx=5, pady=5)
+
+rotate_slider = Scale(my_w, from_=0, to=360, length=400, orient='horizontal', label='Rotate (Degrees)')
+rotate_slider.set(0)
+rotate_slider.grid(row=6, column=1, padx=5, pady=5)
+
+# Create global variables
+label = None
+image = None
+
+# Define functions to process the image
+def upload_file():
+    global image
+    file_path = filedialog.askopenfilename()
+    if file_path:
+        image = cv2.imread(file_path)
+        display_image(image)
+
+def process_image(function_name, parameter=None):
+    global image
+    if image is None:
+        return
+    if function_name == "resize":
+        image = resize_image(image, parameter)
+    elif function_name == "grayscale":
+        image = grayscale_image(image)
+    elif function_name == "blur":
+        image = blur_image(image, parameter)
+    elif function_name == "scale":
+        image = scale_image(image, parameter)
+    elif function_name == "rotate":
+        image= rotate_image(image, parameter)
+    elif function_name == "flip":
+        image = flip_image(image)
+    display_image(image)
+
+def display_image(img):
+    global label, image
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = Image.fromarray(img)
+    img = ImageTk.PhotoImage(img)
+    if label is None:
+        label = tk.Label(my_w, image=img)
+        label.image = img
+        label.grid(row=1, column=2, rowspan=6)
+    else:
+        label.configure(image=img)
+        label.image = img
+
+def save_image():
+    global image
+    if image is not None:
+        file_path = filedialog.asksaveasfilename(defaultextension=".jpg")
+        if file_path:
+            cv2.imwrite(file_path, image)
+
+def resize_image(img, scale_percent):
+    width = int(img.shape[1] * scale_percent / 100)
+    height = int(img.shape[0] * scale_percent / 100)
+    dim = (width, height)
+    return cv2.resize(img, dim, interpolation=cv2.INTER_AREA)
+
+def grayscale_image(img):
+    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+def blur_image(img, kernel_size):
+    return cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
+
+def scale_image(img, scale_percent):
+    width = int(img.shape[1] * scale_percent / 100)
+    height = int(img.shape[0] * scale_percent / 100)
+    dim = (width, height)
+    return cv2.resize(img, dim, interpolation=cv2.INTER_CUBIC)
+
+def rotate_image(img, angle):
+    (h, w) = img.shape[:2]
+    center = (w / 2, h / 2)
+    M = cv2.getRotationMatrix2D(center, angle, 1.0)
+    return cv2.warpAffine(img, M, (w, h))
+
+def flip_image(img):
+    return cv2.flip(img, 1)
+
+my_w.mainloop()
